@@ -2,9 +2,9 @@
   "name": "auraedit-v3-production",
   "version": "3.0.0",
   "private": true,
-  "scripts": {
+    "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "next lint"
   },
