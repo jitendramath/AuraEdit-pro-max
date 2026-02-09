@@ -3,15 +3,16 @@ const withPWA = require('next-pwa')({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development', // Dev mein PWA disable rakho taaki reload fast ho
+  disable: process.env.NODE_ENV === 'development',
 });
 
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true, // Vercel optimization ON
+  // swcMinify: true  <-- YE LINE HATA DI HUMNE (Kyunki ye ab default hai)
   images: {
-    unoptimized: true, // Static export compatibility (agar future mein chahiye ho)
+    unoptimized: true,
   },
 };
 
 module.exports = withPWA(nextConfig);
+
