@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* --- 1. GLOBAL RESET & FONTS --- */
+:root {
+  --font-outfit: 'Outfit', sans-serif;
+  --font-jetbrains: 'JetBrains Mono', monospace;
+  
+  /* AuraEdit Theme Colors (Synced with style.css) */
+  --bg-editor: #1e1e2e;
+  --bg-sidebar: #181825;
+  --bg-activity: #313244;
+  --accent: #3b82f6; /* Blue-500 */
+  --text-primary: #cdd6f4;
+  --text-secondary: #a6accd;
+}
+
+body {
+  background-color: var(--bg-editor);
+  color: var(--text-primary);
+  font-family: var(--font-outfit);
+  overflow: hidden; /* Prevent body scroll, handle inside components */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* --- 2. CUSTOM SCROLLBAR (Mobile First) --- */
+/* Thin, dark scrollbars that don't take up space */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #45475a;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #585b70;
+}
+
+/* Firefox Support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #45475a transparent;
+}
+
+/* --- 3. CODEMIRROR OVERRIDES --- */
+/* Ensure the editor takes full height and uses correct font */
+.CodeMirror {
+  font-family: var(--font-jetbrains) !important;
+  height: 100% !important;
+  background-color: var(--bg-editor) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Cursor Color */
+.CodeMirror-cursor {
+  border-left: 2px solid var(--accent) !important;
+}
+
+/* Selection Color */
+.CodeMirror-selected {
+  background: rgba(59, 130, 246, 0.3) !important;
+}
+
+/* --- 4. ANIMATIONS --- */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 3s linear infinite;
+}
+
+/* Utilities */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
