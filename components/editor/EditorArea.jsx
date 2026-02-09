@@ -1,18 +1,23 @@
 import { useMemo } from 'react';
 import useProjectStore from '@/store/useProjectStore';
-
-// --- SUB-COMPONENTS (Hum agle steps mein banayenge) ---
-import CodeMirrorEditor from './CodeMirrorEditor';
 import QuickBar from './QuickBar';
 
-/**
- * 📝 EDITOR AREA (Container)
- * Manages the layout for the active file editor, tabs, and mobile tools.
- */
+// ✅ NEW: Dynamic Import (SSR: false)
+// Ye server ko CodeMirror load karne se rokega
+import dynamic from 'next/dynamic';
+const CodeMirrorEditor = dynamic(() => import('./CodeMirrorEditor'), {
+    ssr: false,
+    loading: () => (
+        <div className="flex h-full w-full items-center justify-center bg-[#1e1e2e] text-gray-500">
+            <i className="ri-loader-4-line animate-spin text-2xl"></i>
+        </div>
+    ),
+});
+
 export default function EditorArea() {
     const { activeFile, updateFileContent } = useProjectStore();
 
-    // --- EMPTY STATE (Welcome Screen) ---
+    // --- EMPTY STATE ---
     if (!activeFile) {
         return (
             <div className="flex h-full w-full flex-col items-center justify-center bg-[#1e1e2e] text-[#585b70]">
@@ -21,41 +26,22 @@ export default function EditorArea() {
                 </div>
                 <h2 className="text-xl font-bold tracking-wide text-[#cdd6f4]">AURA EDIT v3.0</h2>
                 <p className="mt-2 text-sm text-[#a6accd]">Select a file to start coding</p>
-                
-                <div className="mt-8 flex gap-4 text-xs">
-                    <div className="flex items-center gap-2">
-                        <span className="rounded bg-[#313244] px-2 py-1 text-gray-300">CTRL+S</span>
-                        <span>Save</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className="rounded bg-[#313244] px-2 py-1 text-gray-300">AI</span>
-                        <span>Architect</span>
-                    </div>
-                </div>
             </div>
         );
     }
 
-    // --- ACTIVE EDITOR LAYOUT ---
+    // --- ACTIVE EDITOR ---
     return (
         <div className="flex h-full w-full flex-col bg-[#1e1e2e]">
-            
-            {/* 1. FILE TAB HEADER */}
-            <div className="flex h-10 shrink-0 items-center border-b border-[#313244] bg-[#1e1e2e] overflow-x-auto">
+            {/* Header */}
+            <div className="flex h-10 shrink-0 items-center border-b border-[#313244] bg-[#1e1e2e]">
                 <div className="flex h-full items-center gap-2 border-t-2 border-blue-500 bg-[#1e1e2e] px-4 pr-6 text-sm text-[#cdd6f4]">
                     <i className="ri-file-code-line text-blue-400"></i>
                     <span className="font-medium">{activeFile.name}</span>
-                    <button 
-                        className="ml-2 rounded-full p-0.5 text-[#585b70] hover:bg-[#313244] hover:text-white"
-                        onClick={() => {/* Close logic if needed */}}
-                    >
-                        <i className="ri-close-line"></i>
-                    </button>
                 </div>
-                {/* Future: Map through 'openFiles' array here for multi-tabs */}
             </div>
 
-            {/* 2. CODE EDITOR (The Core) */}
+            {/* CodeMirror (Client Only) */}
             <div className="relative flex-1 overflow-hidden">
                 <CodeMirrorEditor 
                     fileId={activeFile.id}
@@ -65,29 +51,19 @@ export default function EditorArea() {
                 />
             </div>
 
-            {/* 3. MOBILE QUICK BAR (Symbols) */}
+            {/* QuickBar */}
             <div className="shrink-0 border-t border-[#313244] bg-[#181825]">
                 <QuickBar />
             </div>
 
-            {/* 4. STATUS BAR */}
-            <div className="flex h-6 shrink-0 items-center justify-between bg-blue-600 px-3 text-[10px] font-bold text-white md:text-xs">
+            {/* Footer */}
+            <div className="flex h-6 shrink-0 items-center justify-between bg-blue-600 px-3 text-[10px] font-bold text-white">
                 <div className="flex items-center gap-4">
-                    <span>
-                        <i className="ri-git-branch-line mr-1"></i>
-                        MAIN
-                    </span>
-                    <span>
-                        {activeFile.name.toUpperCase()}
-                    </span>
+                    <span>MAIN</span>
+                    <span>{activeFile.name.toUpperCase()}</span>
                 </div>
-                <div className="flex items-center gap-4">
-                    <span className="hidden md:inline">UTF-8</span>
-                    <span>JAVASCRIPT</span>
-                    <span>Ln 1, Col 1</span>
-                </div>
+                <div>UTF-8</div>
             </div>
-
         </div>
     );
 }
