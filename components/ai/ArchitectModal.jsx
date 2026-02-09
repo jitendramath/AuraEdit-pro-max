@@ -1,3 +1,5 @@
+'use client'; 
+import { useState } from 'react';
 import { useState } from 'react';
 import { AuraFS } from '@/lib/fileSystem';
 import useProjectStore from '@/store/useProjectStore';
