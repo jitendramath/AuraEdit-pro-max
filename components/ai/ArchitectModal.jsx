@@ -1,66 +1,65 @@
-'use client'; 
-import { useState } from 'react';
+'use client';
+
 import { useState } from 'react';
 import { AuraFS } from '@/lib/fileSystem';
 import useProjectStore from '@/store/useProjectStore';
 
 /**
- * 🧙‍♂️ ARCHITECT MODAL
- * The bridge where users paste the 'Master Blueprint' from Gemini.
- * It parses the tree and prepares the build queue.
+ * 🧠 ARCHITECT MODAL
+ * Accepts the text blueprint from Gemini/ChatGPT and converts it into a file structure.
  */
 export default function ArchitectModal({ onClose, onStartBuild }) {
     const [blueprint, setBlueprint] = useState('');
     const [isParsing, setIsParsing] = useState(false);
-    const { refreshProject } = useProjectStore();
+    const { setProject } = useProjectStore();
 
-    /**
-     * 🧩 PARSE & PREPARE BUILD
-     * 1. Generates folders/files from text.
-     * 2. Scans the new tree to find empty files.
-     * 3. Triggers the Pentagon Builder.
-     */
     const handleProcess = async () => {
         if (!blueprint.trim()) return;
-
         setIsParsing(true);
 
         try {
-            // 1. Create Structure in DB
-            await AuraFS.parseAIStructure(blueprint);
+            // 1. Parse the AI Text into a File System Structure
+            console.log("Parsing blueprint...");
+            const root = await AuraFS.parseAIStructure(blueprint);
             
-            // 2. Sync UI
-            await refreshProject();
+            if (!root || root.length === 0) {
+                alert("Could not parse structure. Make sure format is correct.");
+                setIsParsing(false);
+                return;
+            }
 
-            // 3. Generate Build Queue (Find all files that need code)
-            const project = await AuraFS.loadFromDB();
+            // 2. Save to Project Store
+            const projectData = {
+                id: Date.now().toString(),
+                name: root[0]?.name || 'Aura Project',
+                root: root
+            };
+            
+            setProject(projectData);
+            console.log("Project structure saved:", projectData);
+
+            // 3. Identify Empty Files for the Builder Queue
             const queue = [];
-
             const findEmptyFiles = (nodes) => {
                 nodes.forEach(node => {
-                    if (node.type === 'file') {
-                        // Add to queue if content is placeholder or empty
-                        // This logic ensures we only build what needs building
-                        queue.push({
-                            id: node.id,
-                            name: node.name,
-                            path: node.name // In a real app, calculate full path here
-                        });
-                    } else if (node.children) {
-                        findEmptyFiles(node.children);
+                    // Agar file hai aur content khali hai, toh queue mein daalo
+                    if (node.type === 'file' && (!node.content || node.content.trim() === '')) {
+                        queue.push(node);
                     }
+                    if (node.children) findEmptyFiles(node.children);
                 });
             };
+            findEmptyFiles(root);
 
-            findEmptyFiles(project.root);
+            console.log(`Found ${queue.length} files to build.`);
 
-            // 4. Handover to Builder Hook
+            // 4. Start the Pentagon Builder
             onStartBuild(queue, blueprint);
             onClose();
 
         } catch (error) {
-            console.error("Architect Error:", error);
-            alert("Blueprint Parsing Failed! Check format.");
+            console.error("Parsing Failed:", error);
+            alert("Error parsing blueprint. Check console for details.");
         } finally {
             setIsParsing(false);
         }
@@ -68,66 +67,47 @@ export default function ArchitectModal({ onClose, onStartBuild }) {
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-[#1e1e2e] border border-[#45475a] shadow-2xl transition-all">
+            <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-[#313244] bg-[#1e1e2e] shadow-2xl animate-in fade-in zoom-in duration-200">
                 
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-[#313244] px-6 py-4 bg-[#181825]">
+                <div className="flex items-center justify-between border-b border-[#313244] bg-[#181825] px-6 py-4">
                     <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/20 text-blue-400">
-                            <i className="ri-magic-line text-lg"></i>
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
+                            <i className="ri-magic-line text-xl"></i>
                         </div>
-                        <h2 className="text-lg font-bold text-white tracking-wide">AI ARCHITECT</h2>
+                        <div>
+                            <h2 className="text-lg font-bold text-white">AI Architect</h2>
+                            <p className="text-xs text-gray-400">Paste your Gemini/ChatGPT Blueprint</p>
+                        </div>
                     </div>
-                    <button 
-                        onClick={onClose}
-                        className="rounded-full p-1 text-gray-400 hover:bg-[#313244] hover:text-white transition-colors"
-                    >
+                    <button onClick={onClose} className="rounded-lg p-2 text-gray-400 hover:bg-[#313244] hover:text-white">
                         <i className="ri-close-line text-xl"></i>
                     </button>
                 </div>
 
                 {/* Body */}
                 <div className="p-6">
-                    <p className="mb-4 text-sm text-gray-400">
-                        Paste the <strong>Master Blueprint</strong> generated by Gemini below. 
-                        AuraEdit will generate the structure and start the <span className="text-blue-400 font-semibold">Pentagon Build Sequence</span>.
-                    </p>
-
-                    <div className="relative group">
-                        <textarea
-                            value={blueprint}
-                            onChange={(e) => setBlueprint(e.target.value)}
-                            placeholder="Example: &#10;My-App/&#10;├── src/&#10;│   ├── App.jsx..."
-                            className="h-64 w-full resize-none rounded-xl border border-[#313244] bg-[#11111b] p-4 font-mono text-sm text-blue-100 placeholder-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none custom-scrollbar"
-                            spellCheck="false"
-                        ></textarea>
-                        
-                        {/* Paste Hint */}
-                        {!blueprint && (
-                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                <span className="text-[#313244] text-6xl opacity-20">
-                                    <i className="ri-clipboard-line"></i>
-                                </span>
-                            </div>
-                        )}
-                    </div>
+                    <textarea 
+                        value={blueprint}
+                        onChange={(e) => setBlueprint(e.target.value)}
+                        placeholder={`Paste file tree here (Example):\n\nMyApp/\n├── src/\n│   ├── App.jsx\n│   └── main.jsx\n└── package.json`}
+                        className="h-64 w-full rounded-xl border border-[#313244] bg-[#11111b] p-4 font-mono text-xs text-gray-300 placeholder-gray-600 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none custom-scrollbar"
+                        spellCheck="false"
+                    />
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-end gap-3 border-t border-[#313244] bg-[#181825] px-6 py-4">
+                <div className="flex justify-end gap-3 border-t border-[#313244] bg-[#181825] px-6 py-4">
                     <button 
                         onClick={onClose}
-                        className="rounded-lg px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors"
+                        className="rounded-lg px-4 py-2 text-sm font-medium text-gray-400 hover:text-white hover:bg-[#313244]"
                     >
                         Cancel
                     </button>
                     <button 
                         onClick={handleProcess}
                         disabled={isParsing || !blueprint.trim()}
-                        className={`
-                            relative flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2 text-sm font-bold text-white shadow-lg shadow-blue-900/20 transition-all
-                            ${isParsing ? 'opacity-70 cursor-wait' : 'hover:bg-blue-500 hover:scale-[1.02] active:scale-95'}
-                        `}
+                        className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2 text-sm font-bold text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
                     >
                         {isParsing ? (
                             <>
@@ -136,13 +116,14 @@ export default function ArchitectModal({ onClose, onStartBuild }) {
                             </>
                         ) : (
                             <>
-                                <i className="ri-hammer-line"></i>
-                                Build Project
+                                <i className="ri-cpu-line"></i>
+                                Initialize Project
                             </>
                         )}
                     </button>
                 </div>
+
             </div>
         </div>
     );
-}
+                        }
